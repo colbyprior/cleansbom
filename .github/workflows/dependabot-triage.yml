@@ -22,7 +22,7 @@ jobs:
       IS_SECURITY: ${{ contains(github.head_ref, '-security-') }}
     steps:
       - id: meta
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           # Optional: fills ghsa-id / cvss. GITHUB_TOKEN can't read Dependabot alerts; add a token
           # with "Dependabot alerts: read" as a *Dependabot* secret (Actions secrets aren't exposed
