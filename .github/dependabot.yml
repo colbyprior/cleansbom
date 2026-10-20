@@ -9,7 +9,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels: ["dependencies", "frontend"]
     groups:
       # Security fixes for code that ships -> its own PR, reviewed/merged first.
@@ -34,7 +34,7 @@ updates:
   - package-ecosystem: "uv"
     directory: "/backend"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels: ["dependencies", "backend"]
     groups:
       uv-security:
@@ -48,10 +48,10 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels: ["dependencies", "docker"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
