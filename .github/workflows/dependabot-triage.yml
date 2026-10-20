@@ -1,0 +1,36 @@
+# Labels Dependabot PRs by security/scope and auto-merges low-risk security fixes once
+# required checks pass (needs branch protection with required status checks).
+name: dependabot-triage
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  triage:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ github.event.pull_request.html_url }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          # alert-lookup fills ghsa-id / cvss / alert-state for security PRs. Reading
+          # Dependabot alerts may need a PAT or GitHub App token instead of GITHUB_TOKEN.
+          alert-lookup: true
+          github-token: ${{ secrets.DEPENDABOT_ALERTS_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # dependency-type is "direct:production", "direct:development" or "indirect".
+      - name: Label
+        run: |
+          labels="scope:${{ steps.meta.outputs.dependency-type }}"
+          if [ -n "${{ steps.meta.outputs.ghsa-id }}" ]; then labels="$labels,security"; fi
+          gh pr edit "$PR" --add-label "$labels"
+
+      - name: Auto-merge non-major security fixes
+        if: steps.meta.outputs.ghsa-id != '' && steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR"

@@ -1,0 +1,25 @@
+[project]
+name = "cleansbom-backend-override"
+version = "1.0.0"
+description = "Demo FastAPI backend. Deliberately locked to early-2024 versions."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.27.1",
+    "requests>=2.31.0",
+    "jinja2>=3.1.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.2",
+    "black>=24.2.0",
+]
+
+[tool.uv]
+package = false
+
+# DEMO ONLY: force a fixed starlette while keeping fastapi 0.110.0, which declares
+# starlette<0.37.0. uv ignores that declared range when an override is present.
+# The real fix is bumping fastapi (Dependabot's parent-bump path).
+override-dependencies = ["starlette==1.3.1"]

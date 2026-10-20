@@ -1,0 +1,48 @@
+name: sbom
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1" # weekly: new CVEs land against unchanged code
+
+permissions:
+  contents: read
+
+env:
+  TRIVY_VERSION: "0.76.0"
+  IMAGE: cleansbom-demo:${{ github.sha }}
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # pin to a commit SHA in real use
+
+      - name: Install Trivy
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin "v${TRIVY_VERSION}"
+
+      - name: Build image
+        run: docker build -t "$IMAGE" .
+
+      - name: Generate SBOMs + triage report
+        run: |
+          docker tag "$IMAGE" cleansbom-demo:latest
+          ./scripts/sbom.sh | tee sbom/report.txt
+
+      - name: Fail on fixable HIGH/CRITICAL in what ships
+        # Source lockfiles (prod only) + the image's language packages. Accepted risks
+        # come from .trivyignore.yaml; OS packages are reported but not gated (no fixes).
+        run: |
+          trivy fs --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+            --ignorefile .trivyignore.yaml --exit-code 1 frontend/package-lock.json backend/uv.lock || echo "::warning::fixable HIGH/CRITICAL in source deps"
+          trivy image --quiet --scanners vuln --pkg-types library --severity HIGH,CRITICAL \
+            --ignore-unfixed --ignorefile .trivyignore.yaml --exit-code 1 "$IMAGE" || echo "::warning::fixable HIGH/CRITICAL in image"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/

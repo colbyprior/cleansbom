@@ -1,0 +1,57 @@
+# Dependabot has two independent features:
+#   * version updates  -> driven by `schedule` below, DIRECT deps only
+#   * security updates -> driven by Dependabot alerts (enable in repo settings), opened as soon as
+#                         an alert fires, and can fix TRANSITIVE deps (lockfile-only bump, or by
+#                         bumping the parent). `schedule` does not delay these.
+# Groups with `applies-to: security-updates` only shape how security PRs are bundled.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "frontend"]
+    groups:
+      # Security fixes for code that ships -> its own PR, reviewed/merged first.
+      npm-security-prod:
+        applies-to: security-updates
+        dependency-type: "production"
+        patterns: ["*"]
+      # Security fixes for build tooling (vite, esbuild...) -> separate, lower urgency.
+      npm-security-dev:
+        applies-to: security-updates
+        dependency-type: "development"
+        patterns: ["*"]
+      npm-prod:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      npm-dev:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+
+  # uv is its own ecosystem (reads pyproject.toml + uv.lock). Using "pip" here would only
+  # understand requirements files and would not see transitive pins in uv.lock.
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "backend"]
+    groups:
+      uv-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      uv-all:
+        update-types: ["minor", "patch"]
+
+  # Base images (python:*-slim, node:*-slim, uv). This is the ONLY lever for the
+  # OS-package findings in the container scan and for the copied-in node/python runtimes.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

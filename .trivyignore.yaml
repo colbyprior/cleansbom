@@ -1,0 +1,20 @@
+# Accepted-risk register for findings that CANNOT be fixed by a dependency update.
+# Every entry needs a statement (why) and an expiry (forces a re-review).
+# Use with:  trivy ... --ignorefile .trivyignore.yaml [--show-suppressed]
+vulnerabilities:
+  - id: CVE-2023-28155
+    purls:
+      - pkg:npm/request@2.88.2
+    statement: >-
+      request is deprecated and will never ship a fix. SSRF via cross-protocol redirect.
+      Only used by /api/legacy against our own BACKEND_URL (not user-controlled).
+      Tracked for removal: replace with axios/fetch.
+    expired_at: 2027-01-31
+
+  - id: CVE-2026-41907
+    purls:
+      - pkg:npm/uuid@3.4.0
+    statement: >-
+      Transitive via request. Cannot be pinned: uuid>=8 removed the 'uuid/v4' deep import
+      request depends on (see examples/frontend-pinned-broken). Goes away with request.
+    expired_at: 2027-01-31
