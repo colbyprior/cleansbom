@@ -31,6 +31,7 @@ jobs:
       - name: Generate SBOMs + triage report
         run: |
           docker tag "$IMAGE" cleansbom-demo:latest
+          mkdir -p sbom  # gitignored, so absent on a fresh checkout
           ./scripts/sbom.sh | tee sbom/report.txt
 
       - name: Fail on fixable HIGH/CRITICAL in what ships
