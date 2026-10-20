@@ -7,6 +7,7 @@ on: pull_request
 permissions:
   contents: write
   pull-requests: write
+  issues: write # creating labels goes through the Issues API
 
 jobs:
   triage:
@@ -15,22 +16,32 @@ jobs:
     env:
       PR: ${{ github.event.pull_request.html_url }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      # Every security update is routed into a `*-security-*` group in dependabot.yml, so the
+      # branch name is a reliable security signal even when alert-lookup can't read alerts.
+      IS_SECURITY: ${{ contains(github.head_ref, '-security-') }}
     steps:
       - id: meta
         uses: dependabot/fetch-metadata@v2
         with:
-          # alert-lookup fills ghsa-id / cvss / alert-state for security PRs. Reading
-          # Dependabot alerts may need a PAT or GitHub App token instead of GITHUB_TOKEN.
+          # Optional: fills ghsa-id / cvss. GITHUB_TOKEN can't read Dependabot alerts; add a token
+          # with "Dependabot alerts: read" as a *Dependabot* secret (Actions secrets aren't exposed
+          # to Dependabot-triggered runs).
           alert-lookup: true
           github-token: ${{ secrets.DEPENDABOT_ALERTS_TOKEN || secrets.GITHUB_TOKEN }}
 
       # dependency-type is "direct:production", "direct:development" or "indirect".
       - name: Label
         run: |
-          labels="scope:${{ steps.meta.outputs.dependency-type }}"
-          if [ -n "${{ steps.meta.outputs.ghsa-id }}" ]; then labels="$labels,security"; fi
+          scope="scope:${{ steps.meta.outputs.dependency-type }}"
+          gh label create "$scope" --color c5def5 --force
+          labels="$scope"
+          if [ "$IS_SECURITY" = "true" ] || [ -n "${{ steps.meta.outputs.ghsa-id }}" ]; then
+            gh label create security --color d93f0b --force
+            labels="$labels,security"
+          fi
           gh pr edit "$PR" --add-label "$labels"
 
       - name: Auto-merge non-major security fixes
-        if: steps.meta.outputs.ghsa-id != '' && steps.meta.outputs.update-type != 'version-update:semver-major'
+        if: (env.IS_SECURITY == 'true' || steps.meta.outputs.ghsa-id != '') && steps.meta.outputs.update-type != 'version-update:semver-major'
         run: gh pr merge --auto --squash "$PR"
