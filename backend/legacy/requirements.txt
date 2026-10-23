@@ -1,6 +1,6 @@
 # The "classic" way: only the packages you asked for, nothing about what they pull in.
 # Compare what Dependabot / Trivy can see here vs. ../uv.lock
-fastapi==0.110.0
-uvicorn==0.27.1
-requests==2.33.0
+fastapi==0.154.0
+uvicorn==0.54.0
+requests==2.34.2
 jinja2==3.1.6
